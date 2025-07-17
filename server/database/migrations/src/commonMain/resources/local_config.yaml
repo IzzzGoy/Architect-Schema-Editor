@@ -1,0 +1,5 @@
+database:
+  url: jdbc:pgsql:localhost:5432/schema_editor
+  driver: org.postgresql.Driver
+  user: postgere
+  password: qwerty
