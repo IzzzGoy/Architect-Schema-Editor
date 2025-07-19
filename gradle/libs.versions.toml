@@ -68,6 +68,7 @@ ndimmartrix = { module = "io.github.izzzgoy:ndimmatrix-core", version.ref = "ndi
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 kstore = { module = "io.github.xxfast:kstore", version.ref = "kstore" }
+kstore-file = { module = "io.github.xxfast:kstore-file", version.ref = "kstore" }
 
 [plugins]
 

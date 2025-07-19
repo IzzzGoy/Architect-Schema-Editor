@@ -68,6 +68,7 @@ kotlin {
             implementation(projects.client.uikit)
             implementation(projects.client.presentation.api)
             implementation(projects.client.presentation.impl)
+            implementation(projects.client.data.impl)
         }
 
         commonTest.dependencies {

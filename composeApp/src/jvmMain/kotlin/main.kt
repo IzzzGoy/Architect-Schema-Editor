@@ -8,6 +8,7 @@ import org.koin.dsl.koinApplication
 import org.koin.ksp.generated.module
 import java.awt.Dimension
 import ru.alexey.ndimmatrix.App
+import ru.alexey.ndimmatrix.generator.data.api.dataDiModule
 import ru.alexey.ndimmatrix.generator.presentation.impl.PresentationDIModule
 import ru.alexey.ndimmatrix.generator.ui.UIDIModule
 
@@ -22,13 +23,13 @@ fun main() = application {
             application = {
                 modules(
                     PresentationDIModule().module,
-                    UIDIModule().module
+                    UIDIModule().module,
+                    dataDiModule,
                 )
             },
         ) {
             App()
         }
-
     }
 }
 

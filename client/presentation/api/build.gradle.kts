@@ -38,6 +38,7 @@ kotlin {
                 implementation(compose.material3)
                 implementation(compose.components.resources)
                 implementation(projects.client.uikit)
+                implementation(projects.client.data.api)
 
                 implementation(libs.koin.compose)
                 api(libs.koin.annotations)

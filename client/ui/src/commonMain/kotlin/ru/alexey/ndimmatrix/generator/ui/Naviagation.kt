@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import ru.alexey.ndimmatrix.generator.ui.screens.HomeScreen
 import ru.alexey.ndimmatrix.generator.ui.screens.ParamsScreen
 
 @Composable
@@ -14,10 +15,10 @@ fun Navigator(modifier: Modifier) {
     NavHost(
         modifier = modifier,
         navController = navController,
-        startDestination = Params
+        startDestination = Home
     ) {
         composable<Home> {
-
+            HomeScreen()
         }
 
         composable<Params> {

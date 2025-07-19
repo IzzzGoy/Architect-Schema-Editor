@@ -27,11 +27,21 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-
+            implementation(projects.client.data.api)
+            implementation(libs.kstore)
+            implementation(libs.kstore.file)
+            implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.koin.core)
         }
 
         commonTest.dependencies {
 
+        }
+
+        jvmMain {
+            dependencies {
+                implementation("net.harawata:appdirs:1.4.0")
+            }
         }
 
     }
