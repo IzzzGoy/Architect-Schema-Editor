@@ -41,6 +41,7 @@ kotlin {
                 implementation(projects.client.data.api)
 
                 implementation(libs.koin.compose)
+                implementation(libs.kotlinx.serialization.json)
                 api(libs.koin.annotations)
                 api(libs.ndimmartrix)
 

@@ -45,6 +45,12 @@ class ParametersHolderImpl: ParametersHolder(ParametersModel()) {
                     ParametersModel.edges set e.edges
                 }
             )
+
+            is UpdateParameters.SetNodes -> update(
+                value.copy {
+                    ParametersModel.nodes set e.nodes
+                }
+            )
         }
     }
 }

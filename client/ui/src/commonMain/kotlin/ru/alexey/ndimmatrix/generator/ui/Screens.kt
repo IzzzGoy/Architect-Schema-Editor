@@ -6,4 +6,4 @@ import kotlinx.serialization.Serializable
 data object Home
 
 @Serializable
-data object Params
+data class Params(val project: String)

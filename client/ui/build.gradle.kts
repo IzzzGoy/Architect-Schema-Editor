@@ -47,10 +47,12 @@ kotlin {
                 api(libs.koin.annotations)
 
                 implementation(projects.client.presentation.api)
+                implementation(projects.client.data.api)
                 api(libs.ndimmartrix)
 
                 implementation("org.jetbrains.androidx.navigation:navigation-compose:2.9.0-beta03")
                 implementation("net.engawapg.lib:zoomable:2.8.1")
+                implementation("com.darkrockstudios:mpfilepicker:3.1.0")
             }
         }
 

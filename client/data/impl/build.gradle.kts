@@ -31,7 +31,10 @@ kotlin {
             implementation(libs.kstore)
             implementation(libs.kstore.file)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
             implementation(libs.koin.core)
+
+            implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.8.0")
         }
 
         commonTest.dependencies {

@@ -3,13 +3,11 @@ package ru.alexey.ndimmatrix.generator.ui.screens
 import ParamEditorDrawer
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,9 +15,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -29,18 +25,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.Polyline
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
@@ -67,7 +59,14 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import ru.alexey.ndimmatrix.generator.data.api.local.ProjectLocalSaver
+import ru.alexey.ndimmatrix.generator.data.api.models.ArgumentDataModel
+import ru.alexey.ndimmatrix.generator.data.api.models.ArgumentDataType
+import ru.alexey.ndimmatrix.generator.data.api.models.ParameterDataModel
+import ru.alexey.ndimmatrix.generator.data.api.models.ParametersDataModel
+import ru.alexey.ndimmatrix.generator.data.api.models.ProjectDataModel
 import ru.alexey.ndimmatrix.generator.presentation.api.models.ArgumentModel
+import ru.alexey.ndimmatrix.generator.presentation.api.models.ArgumentType
 import ru.alexey.ndimmatrix.generator.presentation.api.parameters.DialogsIntents
 import ru.alexey.ndimmatrix.generator.presentation.api.parameters.DialogsParameterHolder
 import ru.alexey.ndimmatrix.generator.presentation.api.parameters.ParametersHolder
@@ -81,11 +80,13 @@ import ru.alexey.ndimmatrix.generator.ui.graph.GraphModel
 import ru.alexey.ndimmatrix.generator.ui.graph.GraphTransform
 
 @Composable
-fun ParamsScreen() {
+fun ParamsScreen(project: String) {
     val dialogs = koinInject<DialogsParameterHolder>()
     val coroutineScope = rememberCoroutineScope()
     val parameter = koinInject<ParametersHolder>()
     val _graphModel by parameter.flow.collectAsState()
+
+    val saver = koinInject<ProjectLocalSaver>()
 
     val graphModel by remember {
         derivedStateOf {
@@ -144,6 +145,44 @@ fun ParamsScreen() {
                 )
             }
 
+        },
+        save = {
+            coroutineScope.launch {
+                saver.save(
+                    path = project,
+                    data = ProjectDataModel(
+                        parametersWorkspaces = listOf(
+                            ParametersDataModel(
+                                edges = _graphModel.edges,
+                                nodes = _graphModel.nodes.map {
+                                    ParameterDataModel(
+                                        name = it.name,
+                                        description = it.description,
+                                        args = it.args.map {
+                                            ArgumentDataModel(
+                                                id = it.id,
+                                                name = it.name,
+                                                type = when (it.type) {
+                                                    ArgumentType.INT -> ArgumentDataType.INT
+                                                    ArgumentType.FLOAT -> ArgumentDataType.FLOAT
+                                                    ArgumentType.STRING -> ArgumentDataType.STRING
+                                                    ArgumentType.BOOLEAN -> ArgumentDataType.BOOLEAN
+                                                    ArgumentType.LONG -> ArgumentDataType.LONG
+                                                    ArgumentType.DOUBLE -> ArgumentDataType.DOUBLE
+                                                    ArgumentType.CHAR -> ArgumentDataType.CHAR
+                                                    ArgumentType.BYTE -> ArgumentDataType.BYTE
+                                                    ArgumentType.SHORT -> ArgumentDataType.SHORT
+                                                },
+                                                nullable = it.nullable
+                                            )
+                                        }
+                                    )
+                                }
+                            )
+                        )
+                    )
+                )
+            }
         }
     )
 
@@ -191,14 +230,15 @@ fun GraphModeSelector(
     currentMode: GraphEditMode,
     onModeChanged: (GraphEditMode) -> Unit,
     onAddNode: () -> Unit,
+    save: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isWide = LocalWindowInfo.current.containerSize.width > 500
 
     if (isWide) {
-        HorizontalGraphModeSelector(currentMode, onModeChanged, onAddNode, modifier)
+        HorizontalGraphModeSelector(currentMode, onModeChanged, onAddNode, modifier, save)
     } else {
-        VerticalGraphModeSelector(currentMode, onModeChanged, onAddNode, modifier)
+        VerticalGraphModeSelector(currentMode, onModeChanged, onAddNode, modifier, save)
     }
 }
 
@@ -279,6 +319,7 @@ fun<K: GraphKey> InteractiveGraphEditor(
 
     },
     onAddNode: () -> Unit,
+    save: () -> Unit,
 ) {
     var mode by remember { mutableStateOf(initialMode) }
     var transform by remember { mutableStateOf(initialTransform) }
@@ -320,7 +361,8 @@ fun<K: GraphKey> InteractiveGraphEditor(
                 currentMode = mode,
                 onModeChanged = { mode = it },
                 onAddNode = onAddNode,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 8.dp),
+                save = save
             )
 
             // Кнопки масштабирования (опционально)
@@ -343,6 +385,7 @@ fun VerticalGraphModeSelector(
     onModeChanged: (GraphEditMode) -> Unit,
     onAddNode: () -> Unit,
     modifier: Modifier = Modifier,
+    save: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -362,6 +405,17 @@ fun VerticalGraphModeSelector(
             modifier = Modifier.size(48.dp)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Add node")
+        }
+
+        FilledIconButton(
+            onClick = save,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            ),
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(Icons.Default.Save, contentDescription = "Add node")
         }
 
         HorizontalDivider(
@@ -408,6 +462,7 @@ fun HorizontalGraphModeSelector(
     onModeChanged: (GraphEditMode) -> Unit,
     onAddNode: () -> Unit,
     modifier: Modifier = Modifier,
+    save: () -> Unit,
 ) {
     val modes = remember { GraphEditMode.entries }
 
@@ -431,6 +486,17 @@ fun HorizontalGraphModeSelector(
             modifier = Modifier.size(48.dp)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Add node")
+        }
+
+        FilledIconButton(
+            onClick = save,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            ),
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(Icons.Default.Save, contentDescription = "Add node")
         }
 
         VerticalDivider(
