@@ -7,3 +7,6 @@ data object Home
 
 @Serializable
 data class Params(val project: String)
+
+@Serializable
+data class Events(val project: String)

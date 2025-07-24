@@ -6,6 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import ru.alexey.ndimmatrix.generator.ui.screens.EventsScreen
 import ru.alexey.ndimmatrix.generator.ui.screens.HomeScreen
 import ru.alexey.ndimmatrix.generator.ui.screens.ParamsScreen
 
@@ -25,7 +26,17 @@ fun Navigator(modifier: Modifier) {
         }
 
         composable<Params> { it ->
-            ParamsScreen(it.savedStateHandle.toRoute<Params>().project)
+            val projectName = it.savedStateHandle.toRoute<Params>().project
+            ParamsScreen(projectName) {
+                navController.navigate(Events(projectName))
+            }
+        }
+
+        composable<Events> {
+            val projectName = it.savedStateHandle.toRoute<Events>().project
+            EventsScreen(projectName) {
+                navController.navigate(Params(projectName))
+            }
         }
     }
 }

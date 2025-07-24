@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Polyline
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.SwitchLeft
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.CardDefaults
@@ -62,6 +63,8 @@ import org.koin.compose.koinInject
 import ru.alexey.ndimmatrix.generator.data.api.local.ProjectLocalSaver
 import ru.alexey.ndimmatrix.generator.data.api.models.ArgumentDataModel
 import ru.alexey.ndimmatrix.generator.data.api.models.ArgumentDataType
+import ru.alexey.ndimmatrix.generator.data.api.models.EventDataModel
+import ru.alexey.ndimmatrix.generator.data.api.models.EventsDataModel
 import ru.alexey.ndimmatrix.generator.data.api.models.ParameterDataModel
 import ru.alexey.ndimmatrix.generator.data.api.models.ParametersDataModel
 import ru.alexey.ndimmatrix.generator.data.api.models.ProjectDataModel
@@ -69,6 +72,7 @@ import ru.alexey.ndimmatrix.generator.presentation.api.models.ArgumentModel
 import ru.alexey.ndimmatrix.generator.presentation.api.models.ArgumentType
 import ru.alexey.ndimmatrix.generator.presentation.api.parameters.DialogsIntents
 import ru.alexey.ndimmatrix.generator.presentation.api.parameters.DialogsParameterHolder
+import ru.alexey.ndimmatrix.generator.presentation.api.parameters.EventsHolder
 import ru.alexey.ndimmatrix.generator.presentation.api.parameters.ParametersHolder
 import ru.alexey.ndimmatrix.generator.ui.dialogs.CreateParameterDialogWrapper
 import ru.alexey.ndimmatrix.generator.ui.dialogs.InteractiveDirectedGraph
@@ -80,17 +84,18 @@ import ru.alexey.ndimmatrix.generator.ui.graph.GraphModel
 import ru.alexey.ndimmatrix.generator.ui.graph.GraphTransform
 
 @Composable
-fun ParamsScreen(project: String) {
+fun ParamsScreen(project: String, toEventsScreen: () -> Unit) {
     val dialogs = koinInject<DialogsParameterHolder>()
     val coroutineScope = rememberCoroutineScope()
     val parameter = koinInject<ParametersHolder>()
+    val events = koinInject<EventsHolder>()
     val _graphModel by parameter.flow.collectAsState()
 
     val saver = koinInject<ProjectLocalSaver>()
 
     val graphModel by remember {
         derivedStateOf {
-            GraphModel<ParamDefinition>(
+            GraphModel(
                 edges = _graphModel.edges.map { Edge(it.first, it.second) },
                 nodes = _graphModel.nodes.map { ParamDefinition(it.name, it.description, it.args) },
             )
@@ -98,8 +103,6 @@ fun ParamsScreen(project: String) {
     }
 
     var selectedParams by remember { mutableStateOf<ParamDefinition?>(null) }
-
-
 
     InteractiveGraphEditor(
         graphModel = graphModel,
@@ -178,12 +181,43 @@ fun ParamsScreen(project: String) {
                                         }
                                     )
                                 }
+                            ),
+                        ),
+                        eventsWorkspaces = listOf(
+                            EventsDataModel(
+                                edges = events.value.edges,
+                                nodes = events.value.nodes.map {
+                                    EventDataModel(
+                                        parameter = it.parameter,
+                                        name = it.name,
+                                        description = it.description,
+                                        args = it.args.map {
+                                            ArgumentDataModel(
+                                                id = it.id,
+                                                name = it.name,
+                                                type = when (it.type) {
+                                                    ArgumentType.INT -> ArgumentDataType.INT
+                                                    ArgumentType.FLOAT -> ArgumentDataType.FLOAT
+                                                    ArgumentType.STRING -> ArgumentDataType.STRING
+                                                    ArgumentType.BOOLEAN -> ArgumentDataType.BOOLEAN
+                                                    ArgumentType.LONG -> ArgumentDataType.LONG
+                                                    ArgumentType.DOUBLE -> ArgumentDataType.DOUBLE
+                                                    ArgumentType.CHAR -> ArgumentDataType.CHAR
+                                                    ArgumentType.BYTE -> ArgumentDataType.BYTE
+                                                    ArgumentType.SHORT -> ArgumentDataType.SHORT
+                                                },
+                                                nullable = it.nullable
+                                            )
+                                        }
+                                    )
+                                },
                             )
                         )
                     )
                 )
             }
-        }
+        },
+        switchMode = toEventsScreen
     )
 
     selectedParams?.also {
@@ -231,14 +265,15 @@ fun GraphModeSelector(
     onModeChanged: (GraphEditMode) -> Unit,
     onAddNode: () -> Unit,
     save: () -> Unit,
+    switchMode: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val isWide = LocalWindowInfo.current.containerSize.width > 500
 
     if (isWide) {
-        HorizontalGraphModeSelector(currentMode, onModeChanged, onAddNode, modifier, save)
+        HorizontalGraphModeSelector(currentMode, onModeChanged, onAddNode, modifier, save, switchMode)
     } else {
-        VerticalGraphModeSelector(currentMode, onModeChanged, onAddNode, modifier, save)
+        VerticalGraphModeSelector(currentMode, onModeChanged, onAddNode, modifier, save, switchMode)
     }
 }
 
@@ -320,6 +355,7 @@ fun<K: GraphKey> InteractiveGraphEditor(
     },
     onAddNode: () -> Unit,
     save: () -> Unit,
+    switchMode: () -> Unit,
 ) {
     var mode by remember { mutableStateOf(initialMode) }
     var transform by remember { mutableStateOf(initialTransform) }
@@ -341,12 +377,12 @@ fun<K: GraphKey> InteractiveGraphEditor(
             },
             onNodeClick = onNodeClick,
             graphColors = GraphColors(
-                nodeColor = MaterialTheme.colorScheme.onSurface,
+                nodeColor = MaterialTheme.colorScheme.surface,
                 selectedNodeColor = MaterialTheme.colorScheme.primary,
                 edgeColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                 createEdgeColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f),
                 deleteEdgeColor = MaterialTheme.colorScheme.error.copy(alpha = 0.4f),
-                nodeTextColor = MaterialTheme.colorScheme.onPrimary,
+                nodeTextColor = MaterialTheme.colorScheme.onSurface,
             )
         )
 
@@ -362,7 +398,8 @@ fun<K: GraphKey> InteractiveGraphEditor(
                 onModeChanged = { mode = it },
                 onAddNode = onAddNode,
                 modifier = Modifier.padding(bottom = 8.dp),
-                save = save
+                save = save,
+                switchMode = switchMode
             )
 
             // Кнопки масштабирования (опционально)
@@ -386,6 +423,7 @@ fun VerticalGraphModeSelector(
     onAddNode: () -> Unit,
     modifier: Modifier = Modifier,
     save: () -> Unit,
+    switchMode: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -405,6 +443,17 @@ fun VerticalGraphModeSelector(
             modifier = Modifier.size(48.dp)
         ) {
             Icon(Icons.Default.Add, contentDescription = "Add node")
+        }
+
+        FilledIconButton(
+            onClick = switchMode,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            ),
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(Icons.Default.SwitchLeft, contentDescription = "Switch mode")
         }
 
         FilledIconButton(
@@ -463,6 +512,7 @@ fun HorizontalGraphModeSelector(
     onAddNode: () -> Unit,
     modifier: Modifier = Modifier,
     save: () -> Unit,
+    switchMode: () -> Unit
 ) {
     val modes = remember { GraphEditMode.entries }
 
@@ -489,6 +539,17 @@ fun HorizontalGraphModeSelector(
         }
 
         FilledIconButton(
+            onClick = switchMode,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            ),
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(Icons.Default.SwitchLeft, contentDescription = "Switch mode")
+        }
+
+        FilledIconButton(
             onClick = save,
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
@@ -496,7 +557,7 @@ fun HorizontalGraphModeSelector(
             ),
             modifier = Modifier.size(48.dp)
         ) {
-            Icon(Icons.Default.Save, contentDescription = "Add node")
+            Icon(Icons.Default.Save, contentDescription = "Save schema")
         }
 
         VerticalDivider(
