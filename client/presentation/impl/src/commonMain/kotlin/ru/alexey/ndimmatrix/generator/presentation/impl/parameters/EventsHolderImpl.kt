@@ -26,6 +26,7 @@ class EventsHolderImpl : EventsHolder(
                         name = e.name,
                         description = e.description,
                         args = e.args,
+                        parameter = e.parameter,
                     )
                 }
             )

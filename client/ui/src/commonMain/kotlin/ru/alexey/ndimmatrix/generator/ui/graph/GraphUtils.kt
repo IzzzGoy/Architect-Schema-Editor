@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -30,32 +31,55 @@ internal fun DrawScope.drawNodes(
     graphColors: GraphColors,
     textMeasurer: TextMeasurer,
 ) {
-    nodesState.forEach { (nodeId, pos) ->
-        val center = pos // теперь pos — это абсолютные координаты
-        val isActive = nodeId == draggedNode || nodeId == dragStartNode
+    // Константы для отступов и минимального размера
+    val horizontalPadding = 16f
+    val verticalPadding = 8f
+    val minWidth = 120f
+    val minHeight = 40f
+    val cornerRadius = 12f
 
-        val nodeSize = Size(200f, 60f)
+    nodesState.forEach { (nodeId, pos) ->
+        // Измеряем текст
+        val textLayoutResult = textMeasurer.measure(
+            text = AnnotatedString(nodeId),
+            style = TextStyle(
+                color = graphColors.nodeTextColor,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+            maxLines = 3,
+        )
+
+        // Рассчитываем размер ноды на основе текста
+        val nodeWidth = maxOf(
+            textLayoutResult.size.width + horizontalPadding * 2,
+            minWidth
+        )
+        val nodeHeight = maxOf(
+            textLayoutResult.size.height + verticalPadding * 2,
+            minHeight
+        )
+        val nodeSize = Size(nodeWidth, nodeHeight)
+
+        val center = pos
+        val isActive = nodeId == draggedNode || nodeId == dragStartNode
         val topLeft = Offset(center.x - nodeSize.width / 2, center.y - nodeSize.height / 2)
 
+        // Рисуем ноду
         drawRoundRect(
             color = if (isActive) graphColors.selectedNodeColor else graphColors.nodeColor,
             topLeft = topLeft,
             size = nodeSize,
-            cornerRadius = CornerRadius(12f, 12f)
+            cornerRadius = CornerRadius(cornerRadius, cornerRadius)
         )
 
+        // Рисуем текст по центру
         drawText(
-            textMeasurer = textMeasurer,
-            text = nodeId,
-            topLeft = Offset(topLeft.x, topLeft.y + 15f),
-            size = nodeSize,
-            style = TextStyle(
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-            ),
-            softWrap = true
+            textLayoutResult = textLayoutResult,
+            topLeft = Offset(
+                center.x - textLayoutResult.size.width / 2,
+                center.y - textLayoutResult.size.height / 2
+            )
         )
     }
 }
